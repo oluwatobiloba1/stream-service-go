@@ -1,9 +1,12 @@
 package controllers
 
 import (
+	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lucsky/cuid"
 )
 
 type VideoController struct{}
@@ -13,7 +16,19 @@ func NewVideoController() *VideoController {
 }
 
 func (vc *VideoController) StartRecording(context *gin.Context) {
-	context.IndentedJSON(http.StatusOK, "startRecording")
+	id := cuid.New()
+	filename := id + ".webm"
+	folder := "uploads/"
+	file, err := os.Create(folder + filename)
+	if err != nil {
+		fmt.Println(err)
+		context.JSON(http.StatusInternalServerError, "Error creating the file")
+		return
+	}
+	if err := file.Close(); err != nil {
+		fmt.Println(err)
+	}
+	context.IndentedJSON(http.StatusOK, id)
 }
 func (vc *VideoController) UploadOctetStreamChunk(context *gin.Context) {
 	context.IndentedJSON(http.StatusOK, "uploadOctetStreamChunk")

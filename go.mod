@@ -2,7 +2,10 @@ module github.com/oluwatobiloba1/stream-service-go
 
 go 1.21.5
 
-require github.com/gin-gonic/gin v1.9.1
+require (
+	github.com/gin-gonic/gin v1.9.1
+	github.com/lucsky/cuid v1.2.1
+)
 
 require (
 	github.com/bytedance/sonic v1.9.1 // indirect
