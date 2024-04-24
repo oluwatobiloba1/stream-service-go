@@ -1,7 +1,10 @@
 package main
 
 import (
+	"fmt"
+
 	"github.com/gin-gonic/gin"
+	"github.com/oluwatobiloba1/stream-service-go/config"
 	"github.com/oluwatobiloba1/stream-service-go/controllers"
 )
 
@@ -19,5 +22,8 @@ func main() {
 	router.GET("/:id", videoController.GetSingleVideo)
 	router.DELETE("/:id", videoController.DeleteVideo)
 
-	router.Run("localhost:8080")
+	PORT := config.GoDotEnvVariable("PORT")
+	fmt.Println(PORT)
+	server := "localhost:" + PORT
+	router.Run(server)
 }
