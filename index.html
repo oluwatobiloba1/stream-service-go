@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Service GO!</title>
+</head>
+
+<body>
+    <h1>Test video upload</h1>
+    <label for="images">Choose video file</label>
+    <input type="file" class="video" id="video" accept="*" />
+    <button class="upload">Upload</button>
+
+    <script>
+        let file
+        let VIDEO_ID
+        const BASE_URL = ''
+
+        document.querySelector(".upload").addEventListener('click', startUpload)
+        document.querySelector('.video').addEventListener('change', onFileSelected)
+
+        async function startUpload() {
+            console.log(VIDEO_ID)
+            parseFile(file, async (data) => {
+                // const body = JSON.stringify({ chunk: data.split(',')[1] })
+                const response = await fetch(`${BASE_URL}/api/videos/${VIDEO_ID}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/octet-stream' },
+                    body: data,
+                })
+                console.log(await response.json())
+            })
+        }
+
+        async function onFileSelected(e) {
+            // The file uploaded by the user:
+            file = e.target.files[0]
+            if (file) {
+                const response = await fetch(`${BASE_URL}/api/videos/`, { method: 'POST' })
+                VIDEO_ID = await response.json()
+            } else {
+                console.log('No file selected')
+            }
+        }
+
+        function parseFile(file, callback) {
+            let fileSize = file.size
+            let chunkSize = 5 * 1000 * 1000 // 5mb
+            let offset = 0
+            async function readEventHandler(evt) {
+                if (evt.target.error == null) {
+                    offset += evt.target.result.length
+                    await callback(evt.target.result) // callback for handling read chunk
+                } else {
+                    console.log("Read error: " + evt.target.error)
+                    return
+                }
+                if (offset >= fileSize) {
+                    console.log("Done reading file")
+                    return
+                }
+                // of to the next chunk
+                chunkReaderBlock(offset, chunkSize, file)
+            }
+            function chunkReaderBlock(_offset, length, _file) {
+                let r = new FileReader()
+                let blob = _file.slice(_offset, length + _offset)
+                r.onload = readEventHandler
+                r.readAsDataURL(blob)
+            }
+            // now let's start the read with the first block
+            chunkReaderBlock(offset, chunkSize, file)
+        }
+    </script>
+</body>
+
+</html>
