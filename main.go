@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/oluwatobiloba1/stream-service-go/config"
 	"github.com/oluwatobiloba1/stream-service-go/controllers"
 )
 
@@ -23,9 +24,12 @@ func main() {
 	videoRouter.GET("/:id", videoController.GetSingleVideo)
 	videoRouter.DELETE("/:id", videoController.DeleteVideo)
 
+	PORT := config.GoDotEnvVariable("PORT")
+	log.Println(PORT)
+	server := "localhost:" + PORT
 	router.StaticFile("/", "./index.html")
 
-	if err := router.Run("localhost:8080"); err != nil {
+	if err := router.Run(server); err != nil {
 		log.Fatal("Failed to start server:", err)
 	}
 }
