@@ -15,6 +15,10 @@ import (
 
 type VideoController struct{}
 
+// type StructA struct {
+// 	chunk `form:"chunk"`
+// }
+
 func NewVideoController() *VideoController {
 	return &VideoController{}
 }
@@ -91,7 +95,29 @@ func (vc *VideoController) UploadOctetStreamChunk(context *gin.Context) {
 	context.JSON(http.StatusOK, gin.H{"message": "Data appended to file successfully"})
 }
 func (vc *VideoController) UploadBlobChunk(context *gin.Context) {
-	context.IndentedJSON(http.StatusOK, "uploadBlobChunk")
+
+	fileData, err := context.FormFile("chunk")
+	if err != nil {
+		context.JSON(http.StatusInternalServerError, "Error getting file from request")
+		return
+	}
+	filePath := filepath.Join("uploads", "clv78jlrk0000v8vgp9bw0kb6"+".mp4")
+	// file, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// if err != nil {
+	// 	context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file for appending"})
+	// 	return
+	// }
+	// defer file.Close()
+	err2 := context.SaveUploadedFile(fileData, filePath)
+
+	// Append the decoded data to the file
+	if err2 != nil {
+		context.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to append data to file"})
+		return
+	}
+
+	context.JSON(http.StatusOK, gin.H{"message": "Data appended to file successfully"})
+
 }
 func (vc *VideoController) FinishRecording(context *gin.Context) {
 	context.IndentedJSON(http.StatusOK, "finishRecording")
