@@ -8,121 +8,74 @@
 
   <body>
     <h1>Test video upload</h1>
-    <label for="images">Choose video file</label>
-    <input type="file" class="video" id="video" accept="*" />
-    <button class="upload">Upload</button>
-
+    <!-- <label for="images">Choose video file</label> -->
+    <!-- <input type="file" class="video" id="video" accept="*" /> -->
+    <!-- <button class="upload">Upload</button> -->
+    <video controls id="recording" width="600" height="300"></video>
+    <button class="record">start recording</button>
+    <button class="stop">stop recording</button>
+    <!-- <script src="https://cdn.jsdelivr.net/npm/@ffmpeg/ffmpeg@0.12.10/dist/umd/ffmpeg.min.js"></script> -->
     <script>
-      let file;
       let VIDEO_ID;
       const BASE_URL = "";
 
-      document.querySelector(".upload").addEventListener("click", startUpload);
       document
-        .querySelector(".video")
-        .addEventListener("change", onFileSelected);
+        .querySelector(".record")
+        .addEventListener("click", async function () {
+          await startRecording();
+        });
 
-      async function startUpload() {
-        console.log(VIDEO_ID);
-        // parseFile(file, async (data) => {
-        //     // const body = JSON.stringify({ chunk: data.split(',')[1] })
-        //     const response = await fetch(`${BASE_URL}/api/videos/${VIDEO_ID}`, {
-        //         method: 'PUT',
-        //         headers: { 'Content-Type': 'application/octet-stream' },
-        //         body: data,
-        //     })
-        //     console.log(await response.json())
-        // })
-        const chunks = chunkifyFile(file, 1 * 1024 * 1024);
-        for (let i = 0; i < chunks.length; i++) {
-          try {
-            await uploadChunk(chunks[i], VIDEO_ID, i);
-            console.log(`Chunk ${i} uploaded successfully`);
-          } catch (error) {
-            console.error(`Failed to upload chunk ${i}:`, error);
-            break; // Stop uploading further chunks on error
-          }
-        }
-      }
+      async function startRecording() {
+        let chunk = [];
+        const response = await fetch(`${BASE_URL}/api/videos/`, {
+          method: "POST",
+        });
+        VIDEO_ID = await response.json();
+        console.log({ VIDEO_ID });
 
-      async function onFileSelected(e) {
-        // The file uploaded by the user:
-        file = e.target.files[0];
-        if (file) {
-          const response = await fetch(`${BASE_URL}/api/videos/`, {
-            method: "POST",
+        if (VIDEO_ID) {
+          let stream = await navigator.mediaDevices.getDisplayMedia({
+            video: true,
+            audio: true,
           });
-          VIDEO_ID = await response.json();
-        } else {
-          console.log("No file selected");
-        }
-      }
+          const mime = MediaRecorder.isTypeSupported("video/webm; codecs=vp9")
+            ? "video/webm; codecs=vp9"
+            : "video/webm";
 
-      function chunkifyFile(file, chunkSize) {
-        const chunks = [];
-        let offset = 0;
-
-        while (offset < file.size) {
-          const chunk = file.slice(offset, offset + chunkSize);
-          chunks.push(chunk);
-          offset += chunkSize;
-        }
-
-        return chunks;
-      }
-
-      function uploadChunk(chunk, filename, index) {
-        const formData = new FormData();
-        formData.append("chunk", chunk, `${filename}_${index}`);
-
-        fetch(`${BASE_URL}/api/videos/${VIDEO_ID}/blob`, {
-          // headers: {
-          //   "Content-Type": "multipart/form-data",
-          // },
-          method: "PUT",
-          body: formData,
-        })
-          .then(async (response) => {
-            if (!response.ok) {
-              throw new Error(`Failed to upload chunk ${index}`);
-            }
-            console.log(await response.json());
-            return;
-          })
-          .catch((error) => {
-            console.error(error);
+          let mediaRecorder = new MediaRecorder(stream, {
+            mimeType: "video/webm",
           });
-      }
+          mediaRecorder.addEventListener("dataavailable", async function (e) {
+            console.log(e.data.type);
+            let blob = new Blob([e.data], { type: "video/webm" });
+            chunk.push(e.data);
+            console.log({ blob });
+            await fetch(`${BASE_URL}/api/videos/${VIDEO_ID}/blob`, {
+              method: "PUT",
+              body: blob,
+            });
+          });
+          mediaRecorder.onstop = (e) => {
+            console.log("stopped");
 
-      function parseFile(file, callback) {
-        let fileSize = file.size;
-        let chunkSize = 1 * 1000 * 1000; // 1mb
-        let offset = 0;
-        // async function readEventHandler(evt) {
-        //     if (evt.target.error == null) {
-        //         offset += evt.target.result.length
-        //         await callback(evt.target.result) // callback for handling read chunk
-        //     } else {
-        //         console.log("Read error: " + evt.target.error)
-        //         return
-        //     }
-        //     if (offset >= fileSize) {
-        //         console.log("Done reading file")
-        //         return
-        //     }
-        //     // of to the next chunk
-        //     chunkReaderBlock(offset, chunkSize, file)
-        // }
-        // function chunkReaderBlock(_offset, length, _file) {
-        //     let r = new FileReader()
-        //     let blob = _file.slice(_offset, length + _offset)
-        //     console.log(blob)
-        //     r.onload = readEventHandler
-        //     // r.readAsArrayBuffer(blob)
-        //     // r.readAsDataURL(blob)
-        // }
-        // // now let's start the read with the first block
-        // chunkReaderBlock(offset, chunkSize, file)
+            const bblob = new Blob([e.data], { type: "video/webm" });
+            document.querySelector("video").src = URL.createObjectURL(
+              new Blob(chunk, { type: "video/webm" })
+            );
+          };
+          // mediaRecorder.addEventListener("stop", async function (e) {
+          //   console.log("stopped");
+
+          console.log({ streamTracks: stream.getTracks() });
+          // });
+
+          mediaRecorder.start(10000);
+          document
+            .querySelector(".stop")
+            .addEventListener("click", function () {
+              mediaRecorder.stop();
+            });
+        }
       }
     </script>
   </body>
